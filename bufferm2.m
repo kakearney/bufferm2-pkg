@@ -1,4 +1,4 @@
-function [latb,lonb] = bufferm2(varargin)
+function [out1,out2] = bufferm2(varargin)
 %BUFFERM2 Computes buffer zone around a polygon
 %
 % [latb,lonb] = bufferm2(lat,lon,dist,direction)
@@ -161,132 +161,142 @@ else
     lat = lat(:);
     lon = lon(:);
 end
-    
+
+%---------------------------
+% Set up ability to call 
+% polybool-related functions
+% directly
+%---------------------------
+
+v2gpcpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','vectorsToGPC.m');
+vfgpcpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','vectorsFromGPC.m');
+gpcmexpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','gpcmex.mexmaci64');
+
+if ~exist(vfgpcpath, 'file') || ~exist(gpcmexpath, 'file')
+    error('multiplepolyint:privatepath', ...
+        ['Please modify the paths in bufferm2.m (above this) to point to\n', ...
+         'your copies of vectorsToGPC.m and the mex function gpcmex.  These can\n', ...
+         'be found in the toolbox/map/map/private folder of the Mapping Toolbox']);
+end
+
+vectorsToGPC   = function_handle(v2gpcpath);
+vectorsFromGPC = function_handle(vfgpcpath);
+gpcmex         = function_handle(gpcmexpath);
+
 %---------------------------
 % Split polygon(s) into 
 % separate faces 
 %---------------------------
 
-if iscell(lat)
-    [lat, lon] = polyjoin(lat, lon);  % In case multiple faces in one cell.
-end
-
-[latcells, loncells] = polysplit(lat, lon);
+p = vectorsToGPC(lon, lat);
 
 %---------------------------
 % Create buffer shapes
 %---------------------------
 
-plotflag = 0;
+if geo
+    [latc, lonc] = calccircgeo(cat(1, p.y), cat(1, p.x), dist, npts);
+    pc = struct('x', lonc, 'y', latc, 'ishole', num2cell(false(size(latc))));
+else
+    [xc, yc] = calccirccart(cat(1, p.x), cat(1, p.y), dist, npts);
+    pc = struct('x', xc, 'y', yc, 'ishole', num2cell(false(size(xc))));
+end
 
+if geo
+    [latr, lonr] = deal(cell(size(p)));
+    for ii = 1:length(p)
+        [latr{ii}, lonr{ii}] = calcrecgeo(p(ii).y, p(ii).x, dist);
+    end
+    latr = cat(2, latr{:});
+    lonr = cat(2, lonr{:});
+    pr = struct('x', lonr, 'y', latr, 'ishole', num2cell(false(size(latr))));
+else
+    [xr, yr] = deal(cell(size(p)));
+    for ii = 1:length(p)
+        [xr{ii}, yr{ii}] = calcreccart(p(ii).x, p(ii).y, dist);
+    end
+    xr = cat(2, xr{:});
+    yr = cat(2, yr{:});
+    pr = struct('x', xr, 'y', yr, 'ishole', num2cell(false(size(xr))));
+end
+
+% Check for dateline crossing
+
+if geo 
+    
+    % Center longitude limits around original polygon, to account for
+    % dateline crossings and the like.  
+    
+    xlim = minmax(cat(1, p.x));
+    xcent = mean(xlim);
+    xbnd = xcent + [-180 180]; 
+    for ii = 1:length(pc)
+        islo = pc(ii).x < xbnd(1);
+        ishi = pc(ii).x > xbnd(2);
+        pc(ii).x(islo) = pc(ii).x(islo) + 360;
+        pc(ii).x(ishi) = pc(ii).x(ishi) - 360;
+    end
+    
+    for ii = 1:length(pr)
+        islo = pr(ii).x < xbnd(1);
+        ishi = pr(ii).x > xbnd(2);
+        pr(ii).x(islo) = pr(ii).x(islo) + 360;
+        pr(ii).x(ishi) = pr(ii).x(ishi) - 360;
+    end
+
+end
+
+% Plot check
+
+plotflag = false;
 if plotflag
-    
-    Plt.x = lon;
-    Plt.y = lat;
-    
+    figure;
+    hold on;
+    arrayfun(@(X) plot(X.x, X.y, 'k'), p);
+    arrayfun(@(X) plot(X.x, X.y, 'g'), pc);
+    arrayfun(@(X) plot(X.x, X.y, 'b'), pr);
 end
 
-latcrall = cell(0);
-loncrall = cell(0);
-
-for ipoly = 1:length(latcells)
-    
-    % Circles around each vertex
-    
-    if geo
-        [latc, lonc] = calccircgeo(latcells{ipoly}, loncells{ipoly}, dist, npts);
-    else
-        [lonc, latc] = calccirccart(loncells{ipoly}, latcells{ipoly}, dist, npts);
-    end
-    
-    % Rectangles around each edge
-    
-    if geo
-        [latr, lonr] = calcrecgeo(latcells{ipoly}, loncells{ipoly}, dist);
-    else
-        [lonr, latr] = calcreccart(loncells{ipoly}, latcells{ipoly}, dist);
-    end
-    
-    % Union of circles and rectangles
-    
-    if plotflag
-        Plt.rectx = lonr;
-        Plt.recty = latr;
-        Plt.circx = lonc;
-        Plt.circy = latc;
-    end
-    
-    [latc, lonc] = multipolyunion(latc, lonc);
-    [latr, lonr] = multipolyunion(latr, lonr);
-    
-    if plotflag
-        Plt.rectcombox = lonr;
-        Plt.rectcomboy = latr;
-        Plt.circcombox = lonc;
-        Plt.circcomboy = latc;
-    end
-    
-    [loncr, latcr] = polybool('+', lonr, latr, lonc, latc);
-    
-    % Union of new circle/rectangle combo with that from other faces
-    
-    [loncrall, latcrall] = polybool('+', loncrall, latcrall, loncr, latcr);
-    
-    % Plotting (for debugging only)
-    
-    if plotflag 
-        
-        Plt.allx = loncrall;
-        Plt.ally = latcrall;
-        
-        if ipoly == 1
-            figure;
-            plot(Plt.x, Plt.y, 'k', 'linewidth', 2);
-            hold on
-        end
-        
-        plot(cat(2, Plt.rectx{:}), cat(2, Plt.recty{:}), 'b');
-        plot(cat(2, Plt.circx{:}), cat(2, Plt.circy{:}), 'r');
-        plot(Plt.allx{1}, Plt.ally{1}, 'g', 'linewidth', 2);
-        
-    end
-    
-end
-
-%---------------------------
-% Calculate union/difference
-%---------------------------
+% Add or subtract the circles and rectangles from the original polygons
 
 switch direction
-    case 'out'
-        [lonb, latb] = polybool('+', loncells, latcells, loncrall, latcrall);
     case 'in'
-        [lonb, latb] = polybool('-', loncells, latcells, loncrall, latcrall);
+        fun = 'diff';
+    case 'out'
+        fun = 'union';
+end
+    
+for ic = 1:length(pc)
+    p = gpcmex(fun, p, pc(ic));
+end
+for ir = 1:length(pr)
+    p = gpcmex(fun, p, pr(ir));
 end
 
 if plotflag
-    [Plt.yfinal, Plt.xfinal] = polyjoin(latb, lonb);
-    plot(Plt.xfinal, Plt.yfinal, 'linestyle', '--', 'color', [0 .5 0], 'linewidth', 2);
+    arrayfun(@(X) plot(X.x, X.y, 'color', 'r', 'linewidth', 2', 'linestyle','--'), p);
 end
 
-%---------------------------
-% Reformat output
-%---------------------------
+% Reformat
 
-if ~geo
-    y = latb; % Switch, since cartesion uses opposite order
-    x = lonb;
-    latb = x;
-    lonb = y;
+[x, y] = vectorsFromGPC(p);
+if geo
+    out1 = y;
+    out2 = x;
+else
+    out1 = x;
+    out2 = y;
 end
 
 switch outputformat
     case 'vector'
-        [latb, lonb] = polyjoin(latb, lonb);
+        % Good to go
     case 'cutvector'
-        [latb, lonb] = polycut(latb, lonb);
+        [out1, out2] = polycut(out1, out2);
     case 'cell'
+        [out1, out2] = polysplit(out1, out2);
 end
+
 
 
 %**************************************************************************
