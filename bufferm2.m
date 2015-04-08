@@ -224,25 +224,35 @@ end
 
 if geo 
     
+    for ii = 1:length(pc)
+        [pc(ii).y, pc(ii).x] = maptrimp(pc(ii).y, pc(ii).x, [-90 90], [-180 180]);
+    end
+    for ii = 1:length(pr)
+        [pr(ii).y, pr(ii).x] = maptrimp(pr(ii).y, pr(ii).x, [-90 90], [-180 180]);
+    end
+    for ii = 1:length(p)
+        [p(ii).y, p(ii).x] = maptrimp(p.y, p.x, [-90 90], [-180 180]);
+    end
+    
     % Center longitude limits around original polygon, to account for
     % dateline crossings and the like.  
     
-    xlim = minmax(cat(1, p.x));
-    xcent = mean(xlim);
-    xbnd = xcent + [-180 180]; 
-    for ii = 1:length(pc)
-        islo = pc(ii).x < xbnd(1);
-        ishi = pc(ii).x > xbnd(2);
-        pc(ii).x(islo) = pc(ii).x(islo) + 360;
-        pc(ii).x(ishi) = pc(ii).x(ishi) - 360;
-    end
-    
-    for ii = 1:length(pr)
-        islo = pr(ii).x < xbnd(1);
-        ishi = pr(ii).x > xbnd(2);
-        pr(ii).x(islo) = pr(ii).x(islo) + 360;
-        pr(ii).x(ishi) = pr(ii).x(ishi) - 360;
-    end
+%     xlim = minmax(cat(1, p.x));
+%     xcent = mean(xlim);
+%     xbnd = xcent + [-180 180]; 
+%     for ii = 1:length(pc)
+%         islo = pc(ii).x < xbnd(1);
+%         ishi = pc(ii).x > xbnd(2);
+%         pc(ii).x(islo) = pc(ii).x(islo) + 360;
+%         pc(ii).x(ishi) = pc(ii).x(ishi) - 360;
+%     end
+%     
+%     for ii = 1:length(pr)
+%         islo = pr(ii).x < xbnd(1);
+%         ishi = pr(ii).x > xbnd(2);
+%         pr(ii).x(islo) = pr(ii).x(islo) + 360;
+%         pr(ii).x(ishi) = pr(ii).x(ishi) - 360;
+%     end
 
 end
 
@@ -399,9 +409,106 @@ yrec = [yl+y(1:end-1) yl+y(2:end) yr+y(2:end) yr+y(1:end-1) yl+y(1:end-1)];
 xrec = num2cell(xrec, 2);
 yrec = num2cell(yrec, 2);
 
-
-
-
-    
+% function [p, pc, pr] = convertlon(p, pc,pr)
+% 
+% np = length(p);
+% nc = length(pc);
+% nr = length(pr);
+% 
+% pall = [p(:); pc(:); pr(:)];
+% ndata = length(p);
+% 
+% lon = cat(1, pall.x);
+% 
+% iseast = mod(lon, 360) >= 0 & mod(lon,360) <= 180;
+% 
+% if all(iseast) || ~any(iseast)
+%     
+%     % If everything is in one hemisphere, can just use min/max
+%     
+%     lims = minmax(lon);
+%     
+% else
+%     
+%     bounds = minmax(lon);
+%     crossesdate = all(lon(iswest) <= bounds(1)) & ...
+%                   all(lon(iseast) >= bounds(2));
+%     crossesprime = all(lon(iswest) >= bounds(1)) & ...
+%                    all(lon(iseast) <= bounds(2));
+% end
+% 
+% west = nan(ndata,1);
+% east = nan(ndata,1);
+%     
+% for id = 1:ndata
+% 
+%     allinhemis = all( >= 0) || all(lon{id}(:) <= 0);
+% 
+%     bounds = minmax(lon{id});
+% 
+%     if allinhemis
+%         west(id) = bounds(1);
+%         east(id) = bounds(2);
+%     else
+% 
+%         iswest = lon{id} <= 0;
+%         iseast = lon{id} >= 0;
+% 
+%         dontknow = isequal(unique(lon{id}), bounds');
+%         crossesdate = all(lon{id}(iswest) <= bounds(1)) & ...
+%                       all(lon{id}(iseast) >= bounds(2));
+%         crossesprime = all(lon{id}(iswest) >= bounds(1)) & ...
+%                        all(lon{id}(iseast) <= bounds(2));
+% 
+% 
+%         if dontknow
+%             widthoverprime = diff(bounds);
+%             widthoverdate = (bounds(1)+180) + (180-bounds(2));
+%             if widthoverprime < widthoverdate
+%                 west(id) = bounds(1);
+%                 east(id) = bounds(2);
+%             else
+%                 west(id) = bounds(2);
+%                 east(id) = bounds(1);
+%             end
+%         elseif crossesprime
+%             west(id) = min(lon{id}(iseast));
+%             east(id) = max(lon{id}(iswest));
+% %                 west(id) = bounds(1);
+% %                 east(id) = bounds(2);
+%         elseif crossesdate
+%             west(id) = bounds(2);
+%             east(id) = bounds(1);
+%         end    
+% 
+%     end
+% 
+% end
+% 
+% % Figure out west-east bounds of plot that minimize lon span while
+% % including all objects
+% 
+% 
+% for id = 1:ndata
+%     westbound(id) = west(id);
+%     eastbounds{id} = [east; west];
+%     isless = eastbounds{id} < westbound(id);
+%     eastbounds{id}(isless) = eastbounds{id}(isless) + 360;
+%     lonspan(id) = max(eastbounds{id}) - westbound(id);
+% end
+% 
+% [minval, imin] = min(lonspan);
+% 
+% % Convert bounds to either -180-180 or 0-360 coords as appropriate
+% 
+% westmap = mod(westbound(imin) - In.buffer, 360);
+% eastmap = mod(max(eastbounds{imin}) + In.buffer, 360);
+% 
+% if westmap > eastmap
+%     westmap = westmap - 360;
+% end
+% 
+% 
+%     
     
 
