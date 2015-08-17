@@ -406,8 +406,8 @@ yr(is4) = -halfwidth * cos(theta(is4));
 xrec = [xl+x(1:end-1) xl+x(2:end) xr+x(2:end) xr+x(1:end-1) xl+x(1:end-1)];
 yrec = [yl+y(1:end-1) yl+y(2:end) yr+y(2:end) yr+y(1:end-1) yl+y(1:end-1)];
 
-xrec = num2cell(xrec, 2);
-yrec = num2cell(yrec, 2);
+xrec = num2cell(xrec', 1);
+yrec = num2cell(yrec', 1);
 
 % function [p, pc, pr] = convertlon(p, pc,pr)
 % 
