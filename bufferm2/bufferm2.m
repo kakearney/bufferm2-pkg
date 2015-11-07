@@ -376,7 +376,6 @@ is4 = dx >= 0 & dy < 0;
 ish1 = dy == 0 & dx > 0;
 ish2 = dy == 0 & dx < 0;
 
-
 theta = zeros(5,1);
 theta(is1 | is3) = atan(dy(is1 | is3)./dx(is1 | is3));
 theta(is2 | is4) = -atan(dy(is2 | is4)./dx(is2 | is4));
