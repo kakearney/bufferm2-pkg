@@ -88,7 +88,7 @@ function [out1,out2] = bufferm2(varargin)
 % Check input
 %---------------------------
 
-error(nargchk(3,7,nargin));
+narginchk(3,7);
 
 % Determine if geographic or cartesian
 
