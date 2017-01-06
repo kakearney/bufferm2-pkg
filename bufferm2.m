@@ -224,15 +224,23 @@ end
 
 if geo 
     
-    for ii = 1:length(pc)
-        [pc(ii).y, pc(ii).x] = maptrimp(pc(ii).y, pc(ii).x, [-90 90], [-180 180]);
-    end
-    for ii = 1:length(pr)
-        [pr(ii).y, pr(ii).x] = maptrimp(pr(ii).y, pr(ii).x, [-90 90], [-180 180]);
-    end
-    for ii = 1:length(p)
-        [p(ii).y, p(ii).x] = maptrimp(p.y, p.x, [-90 90], [-180 180]);
-    end
+    p = splitdateline(p(:));
+    pc = splitdateline(pc(:));
+    pr = splitdateline(pr(:));
+    
+    
+%     for ii = 1:length(pc)
+%         pc(ii) = splitdateline(pc(ii))
+% %         [pc(ii).y, pc(ii).x] = maptrimp(pc(ii).y, pc(ii).x, [-90 90], [-180 180]);
+%     end
+%     for ii = 1:length(pr)
+%         p = splitdateline(p)
+% %         [pr(ii).y, pr(ii).x] = maptrimp(pr(ii).y, pr(ii).x, [-90 90], [-180 180]);
+%     end
+%     for ii = 1:length(p)
+%         p = splitdateline(p)
+% %         [p(ii).y, p(ii).x] = maptrimp(p(ii).y, p(ii).x, [-90 90], [-180 180]);
+%     end
     
     % Center longitude limits around original polygon, to account for
     % dateline crossings and the like.  
@@ -407,6 +415,26 @@ yrec = [yl+y(1:end-1) yl+y(2:end) yr+y(2:end) yr+y(1:end-1) yl+y(1:end-1)];
 
 xrec = num2cell(xrec', 1);
 yrec = num2cell(yrec', 1);
+
+function p = splitdateline(p)
+
+issplit = false(size(p));
+new = [];
+for ii = 1:length(p)
+    [y, x] = maptrimp(p(ii).y, p(ii).x, [-90 90], [-180 180]);
+    if ~isequal(x, p(ii).x)
+        issplit(ii) = true;
+        [y,x] = polysplit(y,x);
+        ishole = num2cell(~ispolycw(x,y));
+        if isempty(new)
+            new = struct('x', x, 'y', y, 'ishole', ishole);
+        else
+            new = cat(1, new, struct('x', x, 'y', y, 'ishole', ishole));
+        end
+    end
+end
+p = cat(1, p(~issplit), new);
+
 
 % function [p, pc, pr] = convertlon(p, pc,pr)
 % 
