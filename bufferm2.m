@@ -168,20 +168,37 @@ end
 % directly
 %---------------------------
 
-v2gpcpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','vectorsToGPC.m');
-vfgpcpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','vectorsFromGPC.m');
-gpcmexpath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private','gpcmex.mexmaci64');
+    
+msg = ['Could not find copies of vectorsToGPC.m (%s) and/or ', ...
+       'mex function gpcmex (%s).', ...
+       'The proper files should be found in the ', ...
+       'toolbox/map/map/private folder under the ', ...
+       'directory where Matlab is installed'];
+
+mappath = fullfile(matlabroot, 'toolbox', 'map', 'map', 'private');
+
+v2gpcpath = fullfile(mappath, 'vectorsToGPC.m');
+vfgpcpath = fullfile(mappath, 'vectorsFromGPC.m');
+
+
+Gpc = dir(fullfile(mappath, 'gpcmex*'));
+if length(Gpc) < 1
+    error('bufferm2:gpcmex', 'Could not find gpcmex in default location (%s)', mappath);
+end
+if length(Gpc) > 1
+    warning('Mutiple gpcmex files found; using %s', Gpc(1).name);
+    Gpc = Gpc(1);
+end
+gpcmexpath = fullfile(mappath, Gpc.name);
+
 
 if ~exist(vfgpcpath, 'file') || ~exist(gpcmexpath, 'file')
-    error('multiplepolyint:privatepath', ...
-        ['Please modify the paths in bufferm2.m (above this) to point to\n', ...
-         'your copies of vectorsToGPC.m and the mex function gpcmex.  These can\n', ...
-         'be found in the toolbox/map/map/private folder of the Mapping Toolbox']);
+    error('multiplepolyint:privatepath', msg, v2gpcpath, gpcmexpath);
 end
 
-vectorsToGPC   = function_handle(v2gpcpath);
+vectorsToGPC = function_handle(v2gpcpath);
 vectorsFromGPC = function_handle(vfgpcpath);
-gpcmex         = function_handle(gpcmexpath);
+gpcmex = function_handle(gpcmexpath);
 
 %---------------------------
 % Split polygon(s) into 
