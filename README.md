@@ -1,4 +1,6 @@
 ## bufferm2.m Documentation
+Author: Kelly Kearney
+[![View bufferm2 on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/11095-bufferm2)
 
 This function is mostly a legacy one.  In early versions of the Mapping Toolbox (circa 2005 or so), the bufferm.m function included some buggy behavior, causing it to be very slow and occasionally fail completely.  I wrote this function as a replacement.  
 
